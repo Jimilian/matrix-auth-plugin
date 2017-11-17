@@ -76,6 +76,10 @@ public class ProjectMatrixAuthorizationStrategy extends GlobalMatrixAuthorizatio
         return new ACL() {
             @Override
             public boolean hasPermission(Authentication a, Permission permission) {
+                if (a.equals(SYSTEM)) {
+                    return true;
+                }
+
                 return child.hasPermission(a, permission) || parent.hasPermission(a, permission);
             }
         };
@@ -91,21 +95,20 @@ public class ProjectMatrixAuthorizationStrategy extends GlobalMatrixAuthorizatio
 
     @Override
     public ACL getACL(AbstractItem item) {
-        if (Jenkins.getActiveInstance().getPlugin("cloudbees-folder") != null) { // optional dependency
-            if (item instanceof AbstractFolder) {
-                com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty p = (com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty) ((AbstractFolder) item).getProperties().get(com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty.class);
-                if (p != null) {
-                    SidACL folderAcl = p.getACL();
+        if (item instanceof AbstractFolder) {
+            com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty p = (com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty) ((AbstractFolder) item).getProperties().get(com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty.class);
+            if (p != null) {
+                SidACL folderAcl = p.getACL();
 
-                    if (!p.isBlocksInheritance()) {
-                        final ACL parentAcl = getACL(item.getParent());
-                        return inheritingACL(parentAcl, folderAcl);
-                    } else {
-                        return folderAcl;
-                    }
+                if (!p.isBlocksInheritance()) {
+                    final ACL parentAcl = getACL(item.getParent());
+                    return inheritingACL(parentAcl, folderAcl);
+                } else {
+                    return folderAcl;
                 }
             }
         }
+
         return getACL(item.getParent());
     }
 
